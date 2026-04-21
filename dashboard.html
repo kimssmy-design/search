@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📊 써치 활동지 — 교사 대시보드</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --primary: #2c3e50;
+    --accent: #e67e22;
+    --success: #27ae60;
+    --info: #2980b9;
+    --bg: #f0f2f5;
+    --card: #ffffff;
+    --border: #dce1e7;
+    --text: #2c3e50;
+    --text-sub: #7f8c8d;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  /* ── 잠금 화면 ── */
+  #lockScreen {
+    position: fixed;
+    inset: 0;
+    background: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  .lock-box {
+    background: white;
+    border-radius: 16px;
+    padding: 40px 36px;
+    width: 320px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  }
+  .lock-box .lock-icon { font-size: 48px; margin-bottom: 12px; }
+  .lock-box h2 { font-size: 18px; margin-bottom: 4px; }
+  .lock-box p { font-size: 13px; color: var(--text-sub); margin-bottom: 20px; }
+  .lock-box input {
+    width: 100%;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 16px;
+    text-align: center;
+    letter-spacing: 4px;
+    outline: none;
+    font-family: inherit;
+    margin-bottom: 12px;
+  }
+  .lock-box input:focus { border-color: var(--accent); }
+  .lock-box button {
+    width: 100%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+  }
+  .lock-box button:hover { background: var(--accent); }
+  .lock-error { color: #e74c3c; font-size: 12px; margin-top: 8px; display: none; }
+
+  /* ── 대시보드 레이아웃 ── */
+  #dashboard { display: none; }
+
+  .top-bar {
+    background: var(--primary);
+    color: white;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .top-bar h1 { font-size: 17px; }
+  .top-bar .right { display: flex; align-items: center; gap: 12px; font-size: 13px; opacity: 0.85; }
+
+  .refresh-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    transition: background 0.2s;
+  }
+  .refresh-btn:hover { background: rgba(255,255,255,0.25); }
+
+  .main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px 20px 40px;
+  }
+
+  /* ── 요약 카드 ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 700px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .summary-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  .summary-card .s-icon { font-size: 28px; margin-bottom: 4px; }
+  .summary-card .s-value { font-size: 28px; font-weight: bold; color: var(--primary); }
+  .summary-card .s-label { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+
+  /* ── 차트 그리드 ── */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 700px) { .chart-grid { grid-template-columns: 1fr; } }
+
+  .chart-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+  }
+  .chart-card h3 {
+    font-size: 14px;
+    margin-bottom: 14px;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .chart-wrap { position: relative; height: 220px; }
+
+  /* ── 체크리스트 바 차트 (가로형) ── */
+  .check-bar-list { list-style: none; }
+  .check-bar-item {
+    margin-bottom: 10px;
+  }
+  .check-bar-label {
+    font-size: 12px;
+    color: var(--text);
+    margin-bottom: 3px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .check-bar-track {
+    height: 18px;
+    background: #ecf0f1;
+    border-radius: 9px;
+    overflow: hidden;
+  }
+  .check-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 9px;
+    transition: width 0.8s ease;
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+    font-size: 11px;
+    color: white;
+    font-weight: bold;
+    min-width: 30px;
+  }
+
+  /* ── 답변 목록 ── */
+  .answer-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .answer-card h3 {
+    font-size: 14px;
+    color: var(--primary);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .answer-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    padding: 5px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    background: white;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .tab-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+
+  .answer-list { list-style: none; max-height: 300px; overflow-y: auto; }
+  .answer-list li {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f0f2f5;
+    font-size: 13px;
+    line-height: 1.6;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .answer-list li:last-child { border-bottom: none; }
+  .answer-tag {
+    background: #ecf0f1;
+    color: var(--text-sub);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .answer-text { flex: 1; }
+  .empty-msg {
+    text-align: center;
+    color: var(--text-sub);
+    padding: 30px;
+    font-size: 13px;
+  }
+
+  /* ── 로딩 ── */
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-sub);
+    font-size: 14px;
+  }
+  .spinner {
+    display: inline-block;
+    width: 24px; height: 24px;
+    border: 3px solid #dce1e7;
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── 전체 응답 테이블 ── */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  th {
+    background: var(--primary);
+    color: white;
+    padding: 8px 10px;
+    text-align: left;
+    white-space: nowrap;
+  }
+  td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  tr:hover td { background: #f8fafc; }
+  .scale-chip {
+    display: inline-block;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    text-align: center;
+    line-height: 24px;
+    font-weight: bold;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── 잠금 화면 ── -->
+<div id="lockScreen">
+  <div class="lock-box">
+    <div class="lock-icon">🔐</div>
+    <h2>교사 전용 대시보드</h2>
+    <p>써치 활동지 결과 분석 화면입니다.<br>비밀번호를 입력하세요.</p>
+    <input type="password" id="pwInput" placeholder="비밀번호" onkeydown="if(event.key==='Enter') unlock()">
+    <button onclick="unlock()">입장하기</button>
+    <p class="lock-error" id="lockError">⚠️ 비밀번호가 틀렸습니다.</p>
+  </div>
+</div>
+
+<!-- ── 대시보드 ── -->
+<div id="dashboard">
+  <div class="top-bar">
+    <h1>📊 써치 활동지 — 교사 대시보드</h1>
+    <div class="right">
+      <span id="lastUpdated">-</span>
+      <button class="refresh-btn" onclick="loadData()">🔄 새로고침</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- 요약 카드 -->
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="s-icon">👥</div>
+        <div class="s-value" id="totalCount">-</div>
+        <div class="s-label">제출 인원</div>
+      </div>
+      <div class="summary-card">
+        <div class="s-icon">📱</div>
+        <div class="s-value" id="avgChecks">-</div>
+        <div class="s-label">평균 체크 항목 수</div>
+      </div>
+      <div class="summary-card">
+        <div class="s-icon">⚖️</div>
+        <div class="s-value" id="avgScale">-</div>
+        <div class="s-label">딜레마 척도 평균</div>
+      </div>
+      <div class="summary-card">
+        <div class="s-icon">🔄</div>
+        <div class="s-value" id="changedRate">-</div>
+        <div class="s-label">생각이 달라진 비율</div>
+      </div>
+    </div>
+
+    <!-- 차트 그리드 -->
+    <div class="chart-grid">
+
+      <!-- 체크리스트 분포 -->
+      <div class="chart-card">
+        <h3>☐ 디지털 발자국 체크리스트 응답률</h3>
+        <div id="checklistBars" class="loading">
+          <span class="spinner"></span> 데이터 불러오는 중...
+        </div>
+      </div>
+
+      <!-- 딜레마 척도 분포 -->
+      <div class="chart-card">
+        <h3>⚖️ 딜레마 척도 분포 (1=정당 ~ 5=부당)</h3>
+        <div class="chart-wrap">
+          <canvas id="scaleChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 잊혀질 권리 응답 -->
+      <div class="chart-card">
+        <h3>🌐 "잊혀질 권리가 있었다면 달라졌을까?" 응답</h3>
+        <div class="chart-wrap">
+          <canvas id="rightChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 생각 변화 -->
+      <div class="chart-card">
+        <h3>🔄 영화 후 생각이 달라졌나요?</h3>
+        <div class="chart-wrap">
+          <canvas id="changedChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 주관식 답변 목록 -->
+    <div class="answer-card">
+      <h3>📝 주관식 답변 모아보기</h3>
+      <div class="answer-tabs">
+        <button class="tab-btn active" onclick="showAnswers('preDilemma', this)">영화 전 첫인상</button>
+        <button class="tab-btn" onclick="showAnswers('declaration', this)">디지털 윤리 선언</button>
+        <button class="tab-btn" onclick="showAnswers('crowdEthics', this)">온라인 군중 분석</button>
+        <button class="tab-btn" onclick="showAnswers('rightToForget', this)">잊혀질 권리 정의</button>
+        <button class="tab-btn" onclick="showAnswers('mindChange', this)">생각 변화 이유</button>
+      </div>
+      <ul class="answer-list" id="answerList">
+        <li class="empty-msg">위 탭을 클릭하면 답변 목록이 표시됩니다.</li>
+      </ul>
+    </div>
+
+    <!-- 전체 응답 테이블 -->
+    <div class="answer-card">
+      <h3>📋 전체 응답 목록</h3>
+      <div class="table-wrap">
+        <table id="fullTable">
+          <thead>
+            <tr>
+              <th>제출 시각</th>
+              <th>학반</th>
+              <th>번호</th>
+              <th>이름</th>
+              <th>체크 수</th>
+              <th>딜레마 척도</th>
+              <th>생각 변화</th>
+              <th>선언문</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr><td colspan="8" class="empty-msg">데이터를 불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ─────────────────────────────────────────────────
+  // ⚠️ 아래 두 값을 반드시 수정하세요
+  const DASHBOARD_PASSWORD = 'sksrudwo23!!@';       // 원하는 비밀번호로 변경
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw90Lt1JP-gJTsy_l1xX4RdlfLwZZ_Ru7H_x6FEIE22foxKG_0zp4D9f1UJsnvoxmHQ/exec';
+  // ─────────────────────────────────────────────────
+
+  let allData = [];
+  let scaleChartInst, rightChartInst, changedChartInst;
+
+  // ── 잠금 해제 ──────────────────────────────────
+  function unlock() {
+    const pw = document.getElementById('pwInput').value;
+    if (pw === DASHBOARD_PASSWORD) {
+      document.getElementById('lockScreen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      loadData();
+    } else {
+      document.getElementById('lockError').style.display = 'block';
+      document.getElementById('pwInput').value = '';
+      document.getElementById('pwInput').focus();
+    }
+  }
+
+  // ── 데이터 불러오기 ────────────────────────────
+  async function loadData() {
+    try {
+      const res = await fetch(APPS_SCRIPT_URL + '?action=getData');
+      const json = await res.json();
+      allData = json.data || [];
+      document.getElementById('lastUpdated').textContent =
+        '마지막 업데이트: ' + new Date().toLocaleTimeString('ko-KR');
+      renderAll();
+    } catch (e) {
+      console.error('데이터 불러오기 실패:', e);
+      document.getElementById('lastUpdated').textContent = '⚠️ 불러오기 실패';
+    }
+  }
+
+  // ── 전체 렌더링 ────────────────────────────────
+  function renderAll() {
+    const n = allData.length;
+    document.getElementById('totalCount').textContent = n;
+
+    if (n === 0) return;
+
+    // 평균 체크
+    const avgC = (allData.reduce((s, r) => s + (parseInt(r.checkTotal) || 0), 0) / n).toFixed(1);
+    document.getElementById('avgChecks').textContent = avgC;
+
+    // 딜레마 척도 평균
+    const scales = allData.map(r => parseInt(r.dilemmaScale)).filter(v => !isNaN(v));
+    const avgS = scales.length ? (scales.reduce((a, b) => a + b, 0) / scales.length).toFixed(1) : '-';
+    document.getElementById('avgScale').textContent = avgS;
+
+    // 생각 달라진 비율
+    const changedCount = allData.filter(r => r.mindChanged === 'yes').length;
+    document.getElementById('changedRate').textContent =
+      Math.round(changedCount / n * 100) + '%';
+
+    renderChecklistBars();
+    renderScaleChart();
+    renderRightChart();
+    renderChangedChart();
+    renderTable();
+  }
+
+  // ── 체크리스트 바 ──────────────────────────────
+  const checkLabels = [
+    'SNS 3개 이상',
+    '위치 정보 노출 경험',
+    '공개 설정 의식',
+    '삭제 욕구 경험',
+    '검색 궁금증',
+  ];
+
+  function renderChecklistBars() {
+    const n = allData.length;
+    const counts = [0, 0, 0, 0, 0];
+    allData.forEach(r => {
+      ['check1','check2','check3','check4','check5'].forEach((k, i) => {
+        if (parseInt(r[k]) === 1) counts[i]++;
+      });
+    });
+
+    const container = document.getElementById('checklistBars');
+    container.innerHTML = '';
+    container.className = 'check-bar-list';
+
+    checkLabels.forEach((label, i) => {
+      const pct = n ? Math.round(counts[i] / n * 100) : 0;
+      const li = document.createElement('div');
+      li.className = 'check-bar-item';
+      li.innerHTML = `
+        <div class="check-bar-label">
+          <span>${label}</span>
+          <span>${counts[i]}명 (${pct}%)</span>
+        </div>
+        <div class="check-bar-track">
+          <div class="check-bar-fill" style="width:${pct}%">${pct > 10 ? pct + '%' : ''}</div>
+        </div>`;
+      container.appendChild(li);
+    });
+  }
+
+  // ── 척도 차트 ──────────────────────────────────
+  function renderScaleChart() {
+    const counts = [0, 0, 0, 0, 0];
+    allData.forEach(r => {
+      const v = parseInt(r.dilemmaScale);
+      if (v >= 1 && v <= 5) counts[v - 1]++;
+    });
+
+    const ctx = document.getElementById('scaleChart').getContext('2d');
+    if (scaleChartInst) scaleChartInst.destroy();
+    scaleChartInst = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['1 (정당)', '2', '3', '4', '5 (부당)'],
+        datasets: [{
+          label: '응답 수',
+          data: counts,
+          backgroundColor: ['#27ae60','#82c983','#f39c12','#e07b4a','#e74c3c'],
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      }
+    });
+  }
+
+  // ── 잊혀질 권리 도넛 ──────────────────────────
+  function renderRightChart() {
+    const yes = allData.filter(r => r.rightAnswer === 'yes').length;
+    const no = allData.filter(r => r.rightAnswer === 'no').length;
+    const none = allData.length - yes - no;
+
+    const ctx = document.getElementById('rightChart').getContext('2d');
+    if (rightChartInst) rightChartInst.destroy();
+    rightChartInst = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['달라졌을 것', '달라지지 않았을 것', '미응답'],
+        datasets: [{
+          data: [yes, no, none],
+          backgroundColor: ['#27ae60', '#e74c3c', '#bdc3c7'],
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { font: { size: 12 } } }
+        }
+      }
+    });
+  }
+
+  // ── 생각 변화 도넛 ────────────────────────────
+  function renderChangedChart() {
+    const yes = allData.filter(r => r.mindChanged === 'yes').length;
+    const no = allData.filter(r => r.mindChanged === 'no').length;
+    const none = allData.length - yes - no;
+
+    const ctx = document.getElementById('changedChart').getContext('2d');
+    if (changedChartInst) changedChartInst.destroy();
+    changedChartInst = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['달라졌다', '달라지지 않았다', '미응답'],
+        datasets: [{
+          data: [yes, no, none],
+          backgroundColor: ['#2980b9', '#e67e22', '#bdc3c7'],
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { font: { size: 12 } } }
+        }
+      }
+    });
+  }
+
+  // ── 주관식 답변 탭 ────────────────────────────
+  function showAnswers(field, btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const list = document.getElementById('answerList');
+    const answers = allData.filter(r => r[field] && r[field].trim());
+
+    if (!answers.length) {
+      list.innerHTML = '<li class="empty-msg">아직 답변이 없습니다.</li>';
+      return;
+    }
+
+    list.innerHTML = answers.map(r =>
+      `<li>
+        <span class="answer-tag">${r.classInfo || ''} ${r.name || ''}</span>
+        <span class="answer-text">${escHtml(r[field])}</span>
+      </li>`
+    ).join('');
+  }
+
+  // ── 전체 테이블 ──────────────────────────────
+  function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    if (!allData.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-msg">아직 제출된 데이터가 없습니다.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = allData.map(r => `
+      <tr>
+        <td>${escHtml(r.timestamp || '')}</td>
+        <td>${escHtml(r.classInfo || '')}</td>
+        <td>${escHtml(r.number || '')}</td>
+        <td>${escHtml(r.name || '')}</td>
+        <td style="text-align:center;">${r.checkTotal || 0}</td>
+        <td style="text-align:center;">
+          ${r.dilemmaScale ? `<span class="scale-chip">${r.dilemmaScale}</span>` : '-'}
+        </td>
+        <td style="text-align:center;">${r.mindChanged === 'yes' ? '✅' : r.mindChanged === 'no' ? '➡️' : '-'}</td>
+        <td title="${escHtml(r.declaration || '')}">${escHtml((r.declaration || '').substring(0, 30))}${(r.declaration || '').length > 30 ? '...' : ''}</td>
+      </tr>
+    `).join('');
+  }
+
+  // ── 유틸 ──────────────────────────────────────
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // 엔터키 로그인
+  document.getElementById('pwInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') unlock();
+  });
+</script>
+</body>
+</html>

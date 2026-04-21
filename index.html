@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎬 디지털 탐정이 되어보자 — 영화 &lt;써치&gt;</title>
+<style>
+  :root {
+    --primary: #2c3e50;
+    --accent: #e67e22;
+    --accent-light: #fef3e2;
+    --success: #27ae60;
+    --bg: #f4f6f8;
+    --card: #ffffff;
+    --border: #dce1e7;
+    --text: #2c3e50;
+    --text-sub: #7f8c8d;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.6;
+    padding-bottom: 60px;
+  }
+
+  /* ── 헤더 ── */
+  .top-bar {
+    background: var(--primary);
+    color: white;
+    padding: 18px 20px 14px;
+    text-align: center;
+  }
+  .top-bar h1 { font-size: 18px; margin-bottom: 4px; }
+  .top-bar p { font-size: 12px; opacity: 0.75; }
+
+  /* ── 진행바 ── */
+  .progress-wrap {
+    background: #dce1e7;
+    padding: 10px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-sub);
+    margin-bottom: 5px;
+  }
+  .progress-bar {
+    height: 6px;
+    background: #bfc9d4;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  /* ── 스텝 컨테이너 ── */
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 20px 16px;
+  }
+
+  /* ── 카드 ── */
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--primary);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-desc {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-bottom: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── 인트로 카드 ── */
+  .intro-card {
+    background: var(--accent-light);
+    border: 1.5px solid #f0a854;
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 18px;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .intro-card strong { color: var(--accent); }
+
+  /* ── 이름 입력 ── */
+  .name-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .input-group label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-sub);
+    margin-bottom: 4px;
+    font-weight: bold;
+  }
+  .input-group input, .input-group select {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .input-group input:focus, .input-group select:focus {
+    border-color: var(--accent);
+  }
+
+  /* ── 체크리스트 ── */
+  .checklist { list-style: none; }
+  .checklist li {
+    margin-bottom: 8px;
+  }
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 14px;
+  }
+  .check-item:hover { border-color: var(--accent); background: #fffbf6; }
+  .check-item.checked {
+    border-color: var(--accent);
+    background: var(--accent-light);
+  }
+  .check-item input[type="checkbox"] { display: none; }
+  .check-icon {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #bbb;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+  .check-item.checked .check-icon {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  /* ── 텍스트에어리어 ── */
+  textarea {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 80px;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.6;
+  }
+  textarea:focus { border-color: var(--accent); }
+  .char-count {
+    text-align: right;
+    font-size: 11px;
+    color: var(--text-sub);
+    margin-top: 3px;
+  }
+
+  /* ── 척도 선택 ── */
+  .scale-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0;
+    flex-wrap: wrap;
+  }
+  .scale-label { font-size: 12px; color: var(--text-sub); white-space: nowrap; }
+  .scale-buttons { display: flex; gap: 6px; }
+  .scale-btn {
+    width: 44px;
+    height: 44px;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    background: white;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .scale-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .scale-btn.selected {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  /* ── 검색 태그 ── */
+  .search-tip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #eef2ff;
+    border: 1px solid #c5cff5;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: #4a5dbf;
+    margin: 6px 0 8px;
+  }
+
+  /* ── 두 칸 그리드 ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 500px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* ── 찬반 테이블 ── */
+  .pro-con {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 10px 0;
+  }
+  .pro-con-head {
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: bold;
+    text-align: center;
+  }
+  .pro-con-head.pro { background: #e8f8ef; color: #1e7e45; border-bottom: 1px solid #c3e8d0; }
+  .pro-con-head.con { background: #fdecea; color: #c0392b; border-left: 1px solid var(--border); border-bottom: 1px solid #f5c6c2; }
+  .pro-con textarea {
+    border: none;
+    border-radius: 0;
+    border-left: 1px solid var(--border);
+    min-height: 80px;
+  }
+  .pro-con textarea:focus { border-color: var(--border); }
+  .pro-con textarea:first-of-type { border-left: none; }
+
+  /* ── 단계 헤더 ── */
+  .step-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .step-badge {
+    display: inline-block;
+    background: var(--primary);
+    color: white;
+    font-size: 11px;
+    padding: 3px 12px;
+    border-radius: 20px;
+    margin-bottom: 6px;
+  }
+  .step-header h2 { font-size: 20px; }
+  .step-header p { font-size: 13px; color: var(--text-sub); margin-top: 4px; }
+
+  /* ── 버튼 ── */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  .btn {
+    padding: 13px 32px;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+  .btn-primary:hover { background: #d35400; transform: translateY(-1px); }
+  .btn-secondary {
+    background: #ecf0f1;
+    color: var(--text);
+  }
+  .btn-secondary:hover { background: #dce1e7; }
+  .btn-success {
+    background: var(--success);
+    color: white;
+    padding: 14px 40px;
+    font-size: 16px;
+  }
+  .btn-success:hover { background: #1e8449; }
+
+  /* ── 완료 화면 ── */
+  .done-screen {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .done-icon { font-size: 64px; margin-bottom: 16px; }
+  .done-screen h2 { font-size: 22px; margin-bottom: 8px; }
+  .done-screen p { font-size: 14px; color: var(--text-sub); line-height: 1.7; }
+
+  /* ── 알림 토스트 ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #2c3e50;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 24px;
+    font-size: 14px;
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── 선언문 박스 ── */
+  .declaration-box {
+    border: 2px solid var(--primary);
+    border-radius: 10px;
+    padding: 16px;
+    background: #f8fafc;
+  }
+  .declaration-box .prompt {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-bottom: 8px;
+  }
+</style>
+</head>
+<body>
+
+<!-- 상단 헤더 -->
+<div class="top-bar">
+  <h1>🎬 디지털 탐정이 되어보자</h1>
+  <p>영화 &lt;써치(Searching, 2018)&gt; 활동지 · 중3 도덕</p>
+</div>
+
+<!-- 진행바 -->
+<div class="progress-wrap">
+  <div class="progress-info">
+    <span id="stepLabel">1단계 / 4단계</span>
+    <span id="stepDesc">기본 정보 입력</span>
+  </div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+</div>
+
+<!-- ======================== STEP 1: 기본 정보 + 영화 전 ======================== -->
+<div class="step active" id="step1">
+  <div class="container">
+
+    <div class="step-header">
+      <div class="step-badge">📽 영화 보기 전</div>
+      <h2>내 디지털 발자국 점검</h2>
+      <p>영화를 시작하기 전, 잠깐 나 자신을 돌아봐요.</p>
+    </div>
+
+    <!-- 이름 입력 -->
+    <div class="card">
+      <div class="card-title">📝 기본 정보</div>
+      <div class="name-row">
+        <div class="input-group">
+          <label>학년 · 반</label>
+          <input type="text" id="classInfo" placeholder="예: 3-2" maxlength="6">
+        </div>
+        <div class="input-group">
+          <label>번호</label>
+          <input type="number" id="number" placeholder="예: 15" min="1" max="60">
+        </div>
+        <div class="input-group">
+          <label>이름</label>
+          <input type="text" id="name" placeholder="이름 입력">
+        </div>
+      </div>
+    </div>
+
+    <!-- 영화 소개 -->
+    <div class="intro-card">
+      <strong>🎬 영화 소개</strong><br>
+      &lt;써치(Searching, 2018)&gt;는 딸이 갑자기 실종된 아버지 데이비드가 딸의 노트북과 SNS 계정을 뒤지며 행방을 추적하는 스릴러입니다. 영화의 <strong>모든 장면이 컴퓨터 화면으로만</strong> 진행된다는 특징이 있어요. 오늘은 단순한 관객이 아닌, <strong>디지털 탐정</strong>의 눈으로 바라보세요.
+    </div>
+
+    <!-- 체크리스트 -->
+    <div class="card">
+      <div class="card-title">☐ Q1. 나의 디지털 발자국 자가 점검</div>
+      <div class="card-desc">해당하는 항목을 모두 선택하세요. 솔직하게 체크할수록 오늘 활동이 의미 있어집니다.</div>
+      <ul class="checklist" id="checklist">
+        <li>
+          <label class="check-item" onclick="toggleCheck(this)">
+            <div class="check-icon"></div>
+            <span>내 SNS 계정(인스타, 유튜브, 카톡 등)이 3개 이상 있다.</span>
+          </label>
+        </li>
+        <li>
+          <label class="check-item" onclick="toggleCheck(this)">
+            <div class="check-icon"></div>
+            <span>내 SNS 프로필이나 게시물에 학교 이름이나 위치 정보가 노출된 적 있다.</span>
+          </label>
+        </li>
+        <li>
+          <label class="check-item" onclick="toggleCheck(this)">
+            <div class="check-icon"></div>
+            <span>게시물의 '전체 공개 / 친구만 공개' 설정을 의식하고 올린 적이 있다.</span>
+          </label>
+        </li>
+        <li>
+          <label class="check-item" onclick="toggleCheck(this)">
+            <div class="check-icon"></div>
+            <span>내가 올린 사진이나 글을 나중에 삭제하고 싶었던 적이 있다.</span>
+          </label>
+        </li>
+        <li>
+          <label class="check-item" onclick="toggleCheck(this)">
+            <div class="check-icon"></div>
+            <span>누군가 나를 온라인에서 검색하면 어떤 정보가 나올지 궁금한 적이 있다.</span>
+          </label>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 사전 딜레마 -->
+    <div class="card">
+      <div class="card-title">💭 Q2. 영화 보기 전 첫인상</div>
+      <div class="card-desc">아버지가 실종된 딸을 찾기 위해 딸의 SNS 비밀번호를 알아내려 합니다. 이 행동, 허용될 수 있을까요? 지금 드는 생각을 자유롭게 적어보세요. <em>(영화를 본 후 생각이 달라질 수 있어요!)</em></div>
+      <textarea id="preDilemma" placeholder="지금 생각을 솔직하게 써보세요..." rows="3" oninput="updateCharCount(this, 'preCount')"></textarea>
+      <div class="char-count"><span id="preCount">0</span>자</div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goStep(2)">영화 보러 가기 →</button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ======================== STEP 2: 영화 보는 중 ======================== -->
+<div class="step" id="step2">
+  <div class="container">
+
+    <div class="step-header">
+      <div class="step-badge">🍿 영화 보는 중</div>
+      <h2>장면 메모</h2>
+      <p>인상 깊은 장면을 바로바로 메모해두세요.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🚨 문제가 있다고 느낀 장면</div>
+      <div class="card-desc">온라인 상에서 일어난 행동 중 "이건 아닌데..." 싶었던 장면을 적어보세요.</div>
+      <textarea id="problemScene" placeholder="예: 아버지가 딸의 메시지를 몰래 읽는 장면..." rows="4" oninput="updateCharCount(this, 'problemCount')"></textarea>
+      <div class="char-count"><span id="problemCount">0</span>자</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">✅ 감동받거나 도움이 된 장면</div>
+      <div class="card-desc">디지털 기술이 긍정적으로 쓰이거나, 공감이 된 장면을 적어보세요.</div>
+      <textarea id="goodScene" placeholder="예: 아버지가 딸의 온라인 친구에게 도움을 받는 장면..." rows="4" oninput="updateCharCount(this, 'goodCount')"></textarea>
+      <div class="char-count"><span id="goodCount">0</span>자</div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(1)">← 이전</button>
+      <button class="btn btn-primary" onclick="goStep(3)">영화 다 봤어요 →</button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ======================== STEP 3: 영화 후 활동 ======================== -->
+<div class="step" id="step3">
+  <div class="container">
+
+    <div class="step-header">
+      <div class="step-badge">🔍 영화 다 본 후</div>
+      <h2>디지털 윤리 탐구</h2>
+      <p>이제 탐정처럼 분석해봅시다.</p>
+    </div>
+
+    <!-- 딜레마 활동 -->
+    <div class="card">
+      <div class="card-title">⚖️ 활동 1 — 딜레마 판단</div>
+      <div class="card-desc">아버지가 딸의 SNS에 무단 접속한 행동, 정당한가요? 찬반 근거를 각각 채워보세요.</div>
+      <div class="search-tip">🔎 검색 추천: "자녀 SNS 감시 사생활 침해" / "부모 자녀 디지털 감시"</div>
+
+      <div class="pro-con">
+        <div class="pro-con-head pro">✅ 정당하다 (찬성 근거)</div>
+        <div class="pro-con-head con">❌ 정당하지 않다 (반대 근거)</div>
+        <textarea id="proArg" placeholder="찬성하는 이유를 써보세요..." style="border-right: none;"></textarea>
+        <textarea id="conArg" placeholder="반대하는 이유를 써보세요..."></textarea>
+      </div>
+
+      <div style="margin-top: 14px;">
+        <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px;">📌 나의 최종 입장 (번호를 선택하세요)</div>
+        <div class="scale-wrap">
+          <span class="scale-label">완전히 정당함</span>
+          <div class="scale-buttons" id="scaleButtons">
+            <button class="scale-btn" onclick="selectScale(1)">1</button>
+            <button class="scale-btn" onclick="selectScale(2)">2</button>
+            <button class="scale-btn" onclick="selectScale(3)">3</button>
+            <button class="scale-btn" onclick="selectScale(4)">4</button>
+            <button class="scale-btn" onclick="selectScale(5)">5</button>
+          </div>
+          <span class="scale-label">전혀 정당하지 않음</span>
+        </div>
+        <div class="card-desc" style="margin: 0;">한 줄 이유:</div>
+        <textarea id="scaleReason" placeholder="왜 그 점수를 줬나요?" rows="2" style="margin-top: 6px;"></textarea>
+      </div>
+    </div>
+
+    <!-- 디지털 발자국 -->
+    <div class="card">
+      <div class="card-title">🌐 활동 2 — 디지털 발자국 & 잊혀질 권리</div>
+
+      <div class="two-col">
+        <div>
+          <div style="font-size: 13px; font-weight: bold; margin-bottom: 6px;">Q5. 마고의 결정적 흔적</div>
+          <div class="card-desc" style="margin-bottom: 6px;">마고가 남긴 온라인 흔적 중 사건 해결에 결정적이었던 것은?</div>
+          <textarea id="margoTrace" placeholder="어떤 흔적이었나요?" rows="3"></textarea>
+        </div>
+        <div>
+          <div style="font-size: 13px; font-weight: bold; margin-bottom: 6px;">Q6. '잊혀질 권리'란?</div>
+          <div class="search-tip" style="margin: 0 0 6px;">🔎 "잊혀질 권리" 검색</div>
+          <textarea id="rightToForget" placeholder="내 말로 한 문장 정의해보세요." rows="3"></textarea>
+        </div>
+      </div>
+
+      <div style="margin-top: 12px;">
+        <div style="font-size: 13px; font-weight: bold; margin-bottom: 6px;">마고에게 이 권리가 있었다면 사건이 달라졌을까요?</div>
+        <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:14px;">
+            <input type="radio" name="rightQ" value="yes" onchange="document.getElementById('rightReason').style.display='block'"> ⭕ 달라졌을 것이다
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:14px;">
+            <input type="radio" name="rightQ" value="no" onchange="document.getElementById('rightReason').style.display='block'"> ❌ 달라지지 않았을 것이다
+          </label>
+        </div>
+        <textarea id="rightReason" placeholder="이유를 간단히 써보세요." rows="2" style="display:none;"></textarea>
+      </div>
+    </div>
+
+    <!-- 온라인 군중 -->
+    <div class="card">
+      <div class="card-title">💬 활동 3 — 온라인 군중의 윤리</div>
+      <div class="card-desc">실종 사건이 알려진 후, 온라인 사람들이 보인 반응 중 <strong>가장 비윤리적이라고 생각하는 행동 하나</strong>를 고르고 이유를 쓰세요.</div>
+      <textarea id="crowdEthics" placeholder="어떤 행동이 문제였나요? 왜 그렇게 생각하나요?" rows="3" oninput="updateCharCount(this, 'crowdCount')"></textarea>
+      <div class="char-count"><span id="crowdCount">0</span>자</div>
+
+      <div style="margin-top: 12px;">
+        <div class="card-desc">비슷한 일이 우리 주변에도 있나요? 직접 검색해보세요.</div>
+        <div class="search-tip">🔎 "온라인 신상털기 사례" 검색</div>
+        <textarea id="realCase" placeholder="찾은 사례를 간단히 소개해주세요." rows="3"></textarea>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(2)">← 이전</button>
+      <button class="btn btn-primary" onclick="goStep(4)">마지막 단계로 →</button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ======================== STEP 4: 마무리 + 제출 ======================== -->
+<div class="step" id="step4">
+  <div class="container">
+
+    <div class="step-header">
+      <div class="step-badge">✍️ 마무리</div>
+      <h2>나의 디지털 윤리 선언</h2>
+      <p>영화에서 배운 것을 나의 언어로 표현해보세요.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🌟 나의 디지털 윤리 선언</div>
+      <div class="card-desc">영화를 통해 느낀 점을 바탕으로, 앞으로 온라인에서 지킬 한 가지 원칙을 직접 선언해보세요.</div>
+      <div class="declaration-box">
+        <div class="prompt">나는 앞으로 온라인에서 …</div>
+        <textarea id="declaration" placeholder="예: 다른 사람의 개인정보를 공유하기 전에 한 번 더 생각하겠습니다." rows="3" style="border: none; background: transparent; padding: 8px 0;"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔄 생각이 달라졌나요?</div>
+      <div class="card-desc">앞면 Q2에서 적었던 생각과 지금의 생각, 달라진 게 있나요?</div>
+      <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:14px;">
+          <input type="radio" name="changed" value="yes"> 달라졌다
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:14px;">
+          <input type="radio" name="changed" value="no"> 달라지지 않았다
+        </label>
+      </div>
+      <textarea id="mindChange" placeholder="어떻게 달라졌는지 (또는 왜 달라지지 않았는지) 한 줄로 써보세요." rows="2"></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(3)">← 이전</button>
+      <button class="btn btn-success" onclick="submitAll()">✅ 제출하기</button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ======================== STEP 5: 완료 ======================== -->
+<div class="step" id="step5">
+  <div class="container">
+    <div class="done-screen">
+      <div class="done-icon">🎉</div>
+      <h2>활동지를 모두 제출했어요!</h2>
+      <p id="doneMsg">잠시 후 선생님이 전체 결과를 함께 살펴볼 거예요.<br>오늘 활동 어땠나요? 😊</p>
+    </div>
+  </div>
+</div>
+
+<!-- 토스트 알림 -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── 설정 ──────────────────────────────────────────
+  // ⚠️ Apps Script 배포 후 아래 URL을 교체하세요
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw90Lt1JP-gJTsy_l1xX4RdlfLwZZ_Ru7H_x6FEIE22foxKG_0zp4D9f1UJsnvoxmHQ/exec';
+
+  // ── 상태 ──────────────────────────────────────────
+  let currentStep = 1;
+  const totalSteps = 4;
+  let scaleValue = null;
+
+  // ── 진행 단계 이동 ──────────────────────────────────
+  const stepDescs = ['기본 정보 입력', '영화 보는 중 메모', '영화 후 활동', '마무리 & 제출'];
+
+  function goStep(n) {
+    if (n < 1 || n > 5) return;
+
+    // 유효성 검사 (step1 → step2 이동 시)
+    if (currentStep === 1 && n > 1) {
+      const name = document.getElementById('name').value.trim();
+      const classInfo = document.getElementById('classInfo').value.trim();
+      if (!name || !classInfo) {
+        showToast('📝 학년·반과 이름을 입력해주세요!');
+        return;
+      }
+    }
+
+    document.getElementById('step' + currentStep).classList.remove('active');
+    currentStep = n;
+    document.getElementById('step' + currentStep).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const fill = Math.round((currentStep - 1) / totalSteps * 100);
+    document.getElementById('progressFill').style.width = fill + '%';
+    document.getElementById('stepLabel').textContent = currentStep + '단계 / ' + totalSteps + '단계';
+    document.getElementById('stepDesc').textContent = stepDescs[currentStep - 1] || '';
+  }
+
+  // ── 체크리스트 토글 ──────────────────────────────
+  function toggleCheck(el) {
+    el.classList.toggle('checked');
+    const icon = el.querySelector('.check-icon');
+    icon.textContent = el.classList.contains('checked') ? '✓' : '';
+  }
+
+  // ── 척도 선택 ──────────────────────────────────
+  function selectScale(val) {
+    scaleValue = val;
+    document.querySelectorAll('.scale-btn').forEach((btn, i) => {
+      btn.classList.toggle('selected', i + 1 === val);
+    });
+  }
+
+  // ── 글자 수 카운터 ──────────────────────────────
+  function updateCharCount(el, countId) {
+    document.getElementById(countId).textContent = el.value.length;
+  }
+
+  // ── 토스트 메시지 ──────────────────────────────
+  function showToast(msg, duration = 2500) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), duration);
+  }
+
+  // ── 체크리스트 데이터 수집 ──────────────────────
+  function getChecklist() {
+    const items = document.querySelectorAll('#checklist .check-item');
+    return Array.from(items).map((item, i) => item.classList.contains('checked') ? 1 : 0);
+  }
+
+  // ── 라디오 값 가져오기 ──────────────────────────
+  function getRadio(name) {
+    const el = document.querySelector(`input[name="${name}"]:checked`);
+    return el ? el.value : '';
+  }
+
+  // ── 제출 ──────────────────────────────────────
+  async function submitAll() {
+    const name = document.getElementById('name').value.trim();
+    if (!document.getElementById('declaration').value.trim()) {
+      showToast('✍️ 디지털 윤리 선언을 먼저 작성해주세요!');
+      return;
+    }
+
+    const checks = getChecklist();
+
+    const payload = {
+      timestamp: new Date().toLocaleString('ko-KR'),
+      classInfo: document.getElementById('classInfo').value.trim(),
+      number: document.getElementById('number').value.trim(),
+      name: name,
+
+      // 체크리스트 (각 항목별 0 또는 1)
+      check1: checks[0], // SNS 3개 이상
+      check2: checks[1], // 위치 노출
+      check3: checks[2], // 공개 설정 의식
+      check4: checks[3], // 삭제 욕구
+      check5: checks[4], // 검색 궁금증
+      checkTotal: checks.reduce((a, b) => a + b, 0),
+
+      // 주관식
+      preDilemma: document.getElementById('preDilemma').value.trim(),
+      problemScene: document.getElementById('problemScene').value.trim(),
+      goodScene: document.getElementById('goodScene').value.trim(),
+
+      // 딜레마 척도
+      dilemmaScale: scaleValue || '',
+      proArg: document.getElementById('proArg').value.trim(),
+      conArg: document.getElementById('conArg').value.trim(),
+      scaleReason: document.getElementById('scaleReason').value.trim(),
+
+      // 잊혀질 권리
+      margoTrace: document.getElementById('margoTrace').value.trim(),
+      rightToForget: document.getElementById('rightToForget').value.trim(),
+      rightAnswer: getRadio('rightQ'),
+      rightReason: document.getElementById('rightReason').value.trim(),
+
+      // 온라인 군중
+      crowdEthics: document.getElementById('crowdEthics').value.trim(),
+      realCase: document.getElementById('realCase').value.trim(),
+
+      // 마무리
+      declaration: document.getElementById('declaration').value.trim(),
+      mindChanged: getRadio('changed'),
+      mindChange: document.getElementById('mindChange').value.trim(),
+    };
+
+    // 제출 버튼 비활성화
+    const btn = document.querySelector('.btn-success');
+    btn.textContent = '⏳ 제출 중...';
+    btn.disabled = true;
+
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      document.getElementById('doneMsg').innerHTML =
+        `<strong>${name}</strong> 학생, 제출 완료! 🎉<br>잠시 후 선생님이 전체 결과를 함께 살펴볼 거예요.`;
+      goStep(5);
+
+    } catch (err) {
+      showToast('⚠️ 제출 중 오류가 발생했어요. 다시 시도해주세요.');
+      btn.textContent = '✅ 제출하기';
+      btn.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>
