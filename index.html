@@ -676,7 +676,7 @@
 <script>
   // ── 설정 ──────────────────────────────────────────
   // ⚠️ Apps Script 배포 후 아래 URL을 교체하세요
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw90Lt1JP-gJTsy_l1xX4RdlfLwZZ_Ru7H_x6FEIE22foxKG_0zp4D9f1UJsnvoxmHQ/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
 
   // ── 상태 ──────────────────────────────────────────
   let currentStep = 1;
@@ -689,14 +689,9 @@
   function goStep(n) {
     if (n < 1 || n > 5) return;
 
-    // 유효성 검사 (step1 → step2 이동 시)
-    if (currentStep === 1 && n > 1) {
-      const name = document.getElementById('name').value.trim();
-      const classInfo = document.getElementById('classInfo').value.trim();
-      if (!name || !classInfo) {
-        showToast('📝 학년·반과 이름을 입력해주세요!');
-        return;
-      }
+    // 앞으로 이동할 때만 유효성 검사 (뒤로 가기는 자유롭게)
+    if (n > currentStep) {
+      if (!validateStep(currentStep)) return;
     }
 
     document.getElementById('step' + currentStep).classList.remove('active');
@@ -704,6 +699,62 @@
     document.getElementById('step' + currentStep).classList.add('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     updateProgress();
+  }
+
+  // ── 단계별 유효성 검사 ──────────────────────────
+  function validateStep(step) {
+    if (step === 1) {
+      if (!document.getElementById('classInfo').value.trim()) {
+        showToast('📝 학년·반을 입력해주세요!'); return false;
+      }
+      if (!document.getElementById('name').value.trim()) {
+        showToast('📝 이름을 입력해주세요!'); return false;
+      }
+      if (!document.getElementById('preDilemma').value.trim()) {
+        showToast('💭 Q2. 영화 보기 전 첫인상을 작성해주세요!'); return false;
+      }
+    }
+
+    if (step === 2) {
+      if (!document.getElementById('problemScene').value.trim()) {
+        showToast('🚨 문제가 있다고 느낀 장면을 작성해주세요!'); return false;
+      }
+      if (!document.getElementById('goodScene').value.trim()) {
+        showToast('✅ 감동받은 장면을 작성해주세요!'); return false;
+      }
+    }
+
+    if (step === 3) {
+      if (!document.getElementById('proArg').value.trim()) {
+        showToast('⚖️ 딜레마 찬성 근거를 작성해주세요!'); return false;
+      }
+      if (!document.getElementById('conArg').value.trim()) {
+        showToast('⚖️ 딜레마 반대 근거를 작성해주세요!'); return false;
+      }
+      if (!scaleValue) {
+        showToast('📌 딜레마 척도(1~5)를 선택해주세요!'); return false;
+      }
+      if (!document.getElementById('scaleReason').value.trim()) {
+        showToast('📌 척도 선택 이유를 작성해주세요!'); return false;
+      }
+      if (!document.getElementById('margoTrace').value.trim()) {
+        showToast('🌐 Q5. 마고의 결정적 흔적을 작성해주세요!'); return false;
+      }
+      if (!document.getElementById('rightToForget').value.trim()) {
+        showToast('🌐 Q6. 잊혀질 권리 정의를 작성해주세요!'); return false;
+      }
+      if (!getRadio('rightQ')) {
+        showToast('🌐 잊혀질 권리 관련 O/X를 선택해주세요!'); return false;
+      }
+      if (!document.getElementById('crowdEthics').value.trim()) {
+        showToast('💬 온라인 군중 비윤리 행동을 작성해주세요!'); return false;
+      }
+      if (!document.getElementById('realCase').value.trim()) {
+        showToast('💬 실제 사례를 작성해주세요!'); return false;
+      }
+    }
+
+    return true;
   }
 
   function updateProgress() {
@@ -756,9 +807,15 @@
   // ── 제출 ──────────────────────────────────────
   async function submitAll() {
     const name = document.getElementById('name').value.trim();
+
     if (!document.getElementById('declaration').value.trim()) {
-      showToast('✍️ 디지털 윤리 선언을 먼저 작성해주세요!');
-      return;
+      showToast('✍️ 디지털 윤리 선언을 작성해주세요!'); return;
+    }
+    if (!getRadio('changed')) {
+      showToast('🔄 생각이 달라졌는지 선택해주세요!'); return;
+    }
+    if (!document.getElementById('mindChange').value.trim()) {
+      showToast('🔄 생각 변화 이유를 작성해주세요!'); return;
     }
 
     const checks = getChecklist();
