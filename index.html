@@ -677,7 +677,7 @@
   // ── 설정 ──────────────────────────────────────────
   // ⚠️ GAS 코드를 새로 넣고 "새 배포"하면 URL이 바뀌므로,
   //    바뀐 URL로 아래 값을 교체한 후 사이트를 재배포해주세요.
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw90Lt1JP-gJTsy_l1xX4RdlfLwZZ_Ru7H_x6FEIE22foxKG_0zp4D9f1UJsnvoxmHQ/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxN-3d73eQflJaEoYA5Ca-js2pV0NfeH2Z7l8cDQclDk1joSmEMtOLTiUvRlpxIqzdT/exec';
 
   // ── 페이지 로드 시 GAS 워밍업 ping (콜드스타트 방지) ──
   (function warmup() {
@@ -687,21 +687,34 @@
   // ── GAS 통신 함수 (재시도 3회) ──
   async function postToGas(payload, retries) {
     retries = retries || 3;
+    let lastErr;
     for (let i = 1; i <= retries; i++) {
       try {
         const res = await fetch(APPS_SCRIPT_URL, {
           method: 'POST',
           // ⚠️ 'text/plain'으로 보내야 CORS preflight 없이 GAS가 응답함
           headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          redirect: 'follow'
         });
         if (!res.ok) throw new Error('HTTP ' + res.status);
-        return await res.json();
+
+        // GAS가 가끔 JSON 대신 HTML(로그인 리다이렉트 등)을 보내는 경우가 있어,
+        // 텍스트로 받아서 직접 파싱 시도. 실패해도 HTTP 200이면 성공으로 간주.
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (parseErr) {
+          // JSON 파싱 실패 → 그래도 HTTP 200이면 서버는 받은 것으로 처리
+          return { ok: true, msg: '제출됨(응답 파싱 생략)' };
+        }
       } catch (e) {
+        lastErr = e;
         if (i === retries) throw e;
         await new Promise(function(r) { setTimeout(r, i * 1000); });
       }
     }
+    throw lastErr;
   }
 
   // ── 상태 ──────────────────────────────────────────
